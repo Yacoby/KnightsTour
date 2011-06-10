@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #Copyright (c) 2009 Jacob Essex
 
 #Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,11 +21,12 @@
 
 import unittest, sys
 import random, pygame
+import getopt
 
 #Distance to look back for patterns
 PATTERN_LOOKBACK = 20
 
-
+#------------------------------------------------------------------------------
 class Vertex:
     """Represents a square on the board"""
     def __init__(self, x, y):
@@ -33,18 +35,13 @@ class Vertex:
         self.y = y
     
     def linksToVertex(self, v):
-        """
-        Returns true if this vertex has a link to v
-        """
-        for e in self.edges:
-            if v in e.vertexes:
-                return True
-        return False
+        """ Returns true if this vertex has a link to v """
+        return any([v in e.vertexes for e in self.edges])
 
 def linkVertexes(v1, v2):
     #TODO fix dup
-    for e in v1.edges: #ensures that there isn't already a link
-        if v2  in e.vertexes: 
+    for e in v1.edges:
+        if v2 in e.vertexes: 
             raise Exception("edge already exists")
 
     for e in v2.edges: #ensures that there isn't already a link
@@ -56,7 +53,6 @@ def linkVertexes(v1, v2):
     v2.edges.append(e)
     return e
     
-
 class TestVertex(unittest.TestCase):
     def setUp(self):
         pass
@@ -73,6 +69,7 @@ class TestVertex(unittest.TestCase):
         self.assertTrue(v1.linksToVertex(v2))
         self.assertTrue(v2.linksToVertex(v1))
 
+#------------------------------------------------------------------------------
 class Edge:
     """Represents a edge which is in reality the neuron"""
 
@@ -95,7 +92,6 @@ class Edge:
         """
         return  self.output[self.time] != self.output[self.time-1] or self.state != self.previousState
 
-
     def sumOfNeighbours(self, t):
         s = 0 
         for e in self.vertexes[0].edges + self.vertexes[1].edges:
@@ -116,8 +112,9 @@ class Edge:
             self.output[self.time] = self.output[self.time - 1]
 
         #stop constantly increasing memory use
-        if ( len(self.output) > PATTERN_LOOKBACK ):
+        if len(self.output) > PATTERN_LOOKBACK:
             del self.output[self.time-PATTERN_LOOKBACK]
+
 
 class TestEdge(unittest.TestCase):
     def setUp(self):
@@ -138,6 +135,7 @@ class TestEdge(unittest.TestCase):
         self.edge2.output[0] = 1
         self.assertEqual(1, self.edge.sumOfNeighbours(0))
 
+#------------------------------------------------------------------------------
 class Board:
     def __init__(self, size):
         self.boardSize = size
@@ -146,6 +144,8 @@ class Board:
     
         #generates a 2d array, addressed as [x][y]  
         self.board = [[Vertex(x,y) for y in range(size)] for x in range(size)] 
+
+        self.init()
 
     def init(self):
         """
@@ -189,7 +189,6 @@ class Board:
     def vertexAt(self, pos):
         return self.board[pos[0]][pos[1]]
 
-
     def getPossiblePatterns(self, edge, time, lookBack = range(1, PATTERN_LOOKBACK)):
         """
         Returns a set of patterns found within the edges past output, 
@@ -210,7 +209,7 @@ class Board:
         """
         Returns a set of the distances before the output of the given edges will repeat itself
         """
-        if time < PATTERN_LOOKBACK or len(self.edges) == 0:
+        if time < PATTERN_LOOKBACK or not len(self.edges):
             return set([])
 
         patterns = self.getPossiblePatterns(self.edges[0], time)
@@ -239,13 +238,13 @@ class Board:
                 return False
         return True
 
-    def isNotConvergent(self):
+    def isConvergent(self):
         """
         Checks if the neuron state changes form a patten
         """
-        return len(self.getPatternOffsets(self.edges[0].time))
+        return not len(self.getPatternOffsets(self.edges[0].time))
 
-
+#------------------------------------------------------------------------------
 class TestBoard(unittest.TestCase):
     def setUp(self):
         self.board = Board(6)
@@ -269,10 +268,17 @@ class TestBoard(unittest.TestCase):
         self.assertEqual(0, self.board.vertexAt((0,0)).x)           
         self.assertEqual(5, self.board.vertexAt((0,5)).y)           
 
-
+#------------------------------------------------------------------------------
 if __name__ == "__main__":
+    #defaults
+    size = 6
 
-    #unittest.main()
+    optlist, args = getopt.getopt(sys.argv[1:], 'su', ['size='])
+    for o, a in optlist:
+        if o in ('-s', '--size'):
+            size = int(a)
+        if o in ('-u'):
+            unittest.main()
 
     #try to give an extra speed boost
     try:
@@ -282,9 +288,7 @@ if __name__ == "__main__":
     except ImportError:
         pass
 
-
-    tour = Board(6)
-    tour.init()
+    tour = Board(size)
 
     pygame.init()
     screen = pygame.display.set_mode([tour.boardSize*50+1,tour.boardSize*50+1])
@@ -293,7 +297,6 @@ if __name__ == "__main__":
     runUpdate = True
 
     pygame.display.set_caption("Neural Network - Knights Tour") 
-
 
     while loop:
         for event in pygame.event.get():
@@ -318,7 +321,7 @@ if __name__ == "__main__":
                 runUpdate = False
                 print "Knights Tour - Done : ~", numFrames,  " updates" 
 
-            if tour.isNotConvergent():
+            if not tour.isConvergent():
                 print "\t\tPattern Detected : ~", numFrames, " updates"
                 numFrames = 0
                 runUpdate = True
@@ -328,25 +331,23 @@ if __name__ == "__main__":
         point = lambda x, y: (x*50+25, (tour.boardSize - 1 - y)*50+25)
 
         #reset the screen state to black
-        screen.fill((0, 0, 0))
+        screen.fill((255, 255, 255))
 
         #draw grid
         for i in range(tour.boardSize+2):
             pygame.draw.line(screen, (0, 255, 255), (i*50, 0), (i*50, tour.boardSize*50))
             pygame.draw.line(screen, (0, 255, 255), (0, i*50), (tour.boardSize*50, i*50))
 
-
         for n in tour.edges:
             if n.output[n.time] == 1:
                 color = (0,0,255)
-                pygame.draw.line(   screen,
-                            color,
-                            point(n.vertexes[0].x, n.vertexes[0].y),
-                            point(n.vertexes[1].x, n.vertexes[1].y)
-                        )
+                pygame.draw.line(screen,
+                                 color,
+                                 point(n.vertexes[0].x, n.vertexes[0].y),
+                                 point(n.vertexes[1].x, n.vertexes[1].y)
+                                )
 
         for s in tour.vertexIter():
             pygame.draw.circle(screen, (0, 0, 255), point(s.x, s.y), 5)
 
         pygame.display.update()
-
