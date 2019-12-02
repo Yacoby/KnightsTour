@@ -280,14 +280,6 @@ if __name__ == "__main__":
         if o in ('-u'):
             unittest.main()
 
-    #try to give an extra speed boost
-    try:
-        import psyco
-        psyco.full()
-        print "++ using psyco ++"
-    except ImportError:
-        pass
-
     tour = Board(size)
 
     pygame.init()
@@ -319,10 +311,10 @@ if __name__ == "__main__":
 
             if tour.isStable():
                 runUpdate = False
-                print "Knights Tour - Done : ~", numFrames,  " updates" 
+                print("Knights Tour - Done : ~", numFrames,  " updates")
 
             if not tour.isConvergent():
-                print "\t\tPattern Detected : ~", numFrames, " updates"
+                print("\t\tPattern Detected : ~", numFrames, " updates")
                 numFrames = 0
                 runUpdate = True
                 hasPattern = False

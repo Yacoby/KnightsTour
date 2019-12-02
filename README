@@ -1,14 +1,11 @@
-----About----
-This is a knights tour generator uisng a neural network. While much slower than
-using one of the more common algorithms, I found it amazing that this could be 
+This was written back in 2009 and is here for archival purposes
+
+### About
+This is a knights tour generator using a neural network. While much slower than
+using one of the more common algorithms, I found it amazing that this could be
 done with a neural network.
 
-For a bit more information see:
-http://www.yacoby.net/programming/knights-tour.html
-
-----Usage----
-This requires python2 and pygame
-
+### Usage
 Press ESC to quit
 Press Space to pause
 Press Return to reset to an initial state (reseed the network)
